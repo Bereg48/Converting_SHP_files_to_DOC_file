@@ -3,6 +3,10 @@ from docx import Document
 import pandas as pd
 import shapefile
 import geopandas as gpd
+import time
+from tkinter import Tk, Button, Label, OptionMenu, filedialog
+from tkinter.ttk import Progressbar
+from tkinter import StringVar
 
 
 # Функция для преобразования числа в формат градусы-минуты-секунды
@@ -157,3 +161,27 @@ def create_docx_from_shapefile(shapefile_path, crs_list, doc_path):
 
     doc.save(doc_path)
     print(f'Данные успешно записаны в файл "{doc_path}"')
+
+
+import geopandas as gpd
+
+
+
+def merge_lines(shapefile_path):
+    # Загрузка shp файла с линиями
+    lines_gdf = gpd.read_file(shapefile_path)
+
+    # Объединение всех линий в одну линию
+    merged_line = lines_gdf.unary_union
+
+    return merged_line
+
+
+def calculate_area(shapefile_path):
+    # Загрузка shp файла с полигонами
+    polygons_gdf = gpd.read_file(shapefile_path)
+
+    # Подсчет общей площади полигонов
+    total_area = polygons_gdf.geometry.area.sum()
+
+    return total_area

@@ -1,55 +1,141 @@
-import shapefile
-import pyproj
+# import geopandas as gpd
+# import networkx as nx
+# import osmnx as ox
+#
+# # Указываем путь к исходному shp файлу
+# shp_file = 'gis_osm_railways_free_1.shp'
+#
+# # Чтение shp файла в GeoDataFrame
+# gdf = gpd.read_file(shp_file)
+#
+# # Исправление геометрии
+# gdf['geometry'] = gdf['geometry'].buffer(0)
+#
+# # Построение графа
+# graph = ox.graph_from_gdfs(gdf, network_type='all')
+#
+# # Задаем точки начала и конца маршрута
+# point1 = (57.026619, 24.047104)
+# point2 = (57.006804, 24.048792)
+#
+# # Получение ближайших узлов графа к заданным точкам
+# nearest_node1 = ox.distance.nearest_nodes(graph, point1[1], point1[0])[0]
+# nearest_node2 = ox.distance.nearest_nodes(graph, point2[1], point2[0])[0]
+#
+# # Построение маршрута
+# route = nx.shortest_path(graph, nearest_node1, nearest_node2)
+#
+# # Создание нового GeoDataFrame для сохранения графа и маршрута в shp файл
+# route_gdf = gdf.loc[route]
+#
+# # Указываем путь для сохранения результирующего shp файла
+# output_shp_file = 'output_shp_file.shp'
+#
+# # Сохранение графа и маршрута в shp файл
+# route_gdf.to_file(output_shp_file)
 
-def convert_coordinates(input_shapefile, target_projections, output_shapefile):
-    sf = shapefile.Reader(input_shapefile)
+# import geopandas as gpd
+# import networkx as nx
+# import osmnx as ox
+#
+# # Указываем путь к исходному shp файлу
+# shp_file = 'gis_osm_railways_free_1.shp'
+#
+# # Чтение shp файла в GeoDataFrame
+# gdf = gpd.read_file(shp_file)
+#
+# # Исправление геометрии
+# gdf['geometry'] = gdf['geometry'].buffer(0)
+#
+# # Преобразование геометрии полигона в полигон MultiPolygon
+# polygon = gdf['geometry'].unary_union
+#
+# # Построение графа на основе полигона
+# graph = ox.graph_from_polygon(polygon, network_type='all')
+#
+# # Задаем точки начала и конца маршрута
+# point1 = (57.026619, 24.047104)
+# point2 = (57.006804, 24.048792)
+#
+# # Получение ближайших узлов графа к заданным точкам
+# nearest_node1 = ox.distance.nearest_nodes(graph, point1[1], point1[0])[0]
+# nearest_node2 = ox.distance.nearest_nodes(graph, point2[1], point2[0])[0]
+#
+# # Построение маршрута
+# route = nx.shortest_path(graph, nearest_node1, nearest_node2)
+#
+# # Создание нового GeoDataFrame для сохранения графа и маршрута в shp файл
+# route_gdf = gdf.loc[route]
+#
+# # Указываем путь для сохранения результирующего shp файла
+# output_shp_file = 'output_shp_file.shp'
+#
+# # Сохранение графа и маршрута в shp файл
+# route_gdf.to_file(output_shp_file)
 
-    with open(input_shapefile.replace('.shp', '.prj'), 'r') as prj_file:
-        prj_string = prj_file.read()
+import geopandas as gpd
+import networkx as nx
+import osmnx as ox
 
-    records = sf.records()
+# Указываем путь к исходному shp файлу
+shp_file = 'gis_osm_railways_free_1.shp'
 
-    for i, record in enumerate(records):
-        x = record['x']
-        y = record['y']
+# Чтение shp файла в GeoDataFrame
+gdf = gpd.read_file(shp_file)
 
-        for target_proj in target_projections:
-            transformer = pyproj.Transformer.from_crs(prj_string, target_proj.crs, always_xy=True)
-            new_x, new_y = transformer.transform(x, y)
+# Проверяем геометрии на наличие значения None
+has_null_geometries = gdf['geometry'].isnull().all()
+if has_null_geometries:
+    print("All geometries in the GeoDataFrame are None.")
+    quit()
 
-            field_name = f'new_x_{target_proj.crs}'.replace(':', '_')
-            records[i][field_name] = new_x
+if not gdf['geometry'].empty and gdf['geometry'].notna().all():
+    polygon = gdf['geometry'].unary_union
+    if polygon is not None and polygon.is_valid:
+        # continue with further operations
+        # Your additional code here indented correctly
+    else:
+        print("Invalid geometries")
+else:
+    print("Empty GeoSeries")
 
-            field_name = f'new_y_{target_proj.crs}'.replace(':', '_')
-            records[i][field_name] = new_y
+# Фильтруем геометрии с None значениями
+gdf = gdf[~gdf['geometry'].isnull()]
 
-    w = shapefile.Writer()
+# Проверяем, что остались геометрии после фильтрации
+if len(gdf) == 0:
+    print("There are no valid geometries in the GeoDataFrame.")
+    quit()
 
-    fields = sf.fields[1:]  # Исключаем поля самой геометрии
-    for field in fields:
-        w.field(*field)
+# Исправление геометрии
+gdf['geometry'] = gdf['geometry'].buffer(0)
 
-    for target_proj in target_projections:
-        crs_code = target_proj.crs.replace(':', '_')
-        w.field(f'new_x_{crs_code}', fieldType='N', size=20, decimal=8)
-        w.field(f'new_y_{crs_code}', fieldType='N', size=20, decimal=8)
+# Преобразование геометрии полигона в полигон MultiPolygon
+polygon = gdf['geometry'].unary_union
 
-    for record in records:
-        w.record(*record)
+# Проверяем, что полигон имеет правильное значение
+if polygon.is_valid:
+    # Построение графа на основе полигона
+    graph = ox.graph_from_polygon(polygon, network_type='all')
 
-    for shape in sf.shapes():
-        w.shape(shape)
+    # Задаем точки начала и конца маршрута
+    point1 = (57.026619, 24.047104)
+    point2 = (57.006804, 24.048792)
 
-    w.save(output_shapefile)
+    # Получение ближайших узлов графа к заданным точкам
+    nearest_node1 = ox.distance.nearest_nodes(graph, point1[1], point1[0])[0]
+    nearest_node2 = ox.distance.nearest_nodes(graph, point2[1], point2[0])[0]
 
+    # Построение маршрута
+    route = nx.shortest_path(graph, nearest_node1, nearest_node2)
 
-input_shapefile = 'Europe_National_Provinces_Capitals.shp'
-output_shapefile = ''
-target_projections = [
-    pyproj.Proj(init='EPSG:4326'),  # WGS84
-    pyproj.Proj(init='EPSG:3857'),  # Web Mercator
-    pyproj.Proj(init='EPSG:27700')  # British National Grid
-    # и так далее
-]
+    # Создание нового GeoDataFrame для сохранения графа и маршрута в shp файл
+    route_gdf = gdf.loc[route]
 
-convert_coordinates(input_shapefile, target_projections, output_shapefile)
+    # Указываем путь для сохранения результирующего shp файла
+    output_shp_file = 'output_shp_file.shp'
+
+    # Сохранение графа и маршрута в shp файл
+    route_gdf.to_file(output_shp_file)
+else:
+    print("The generated polygon is not valid.")
