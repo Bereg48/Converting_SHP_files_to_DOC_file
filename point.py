@@ -111,6 +111,7 @@ def process_lines():
     else:
         label_result.config(text="Отменено!")
 
+
 def process_polygons():
     shapefile_path = filedialog.askopenfilename(filetypes=[("Shapefile files", "*.shp")])
     if shapefile_path:
@@ -134,6 +135,7 @@ def process_polygons():
             label_result.config(text="Отменено!")
     else:
         label_result.config(text="Отменено!")
+
 
 root = Tk()
 root.title("Программа")
